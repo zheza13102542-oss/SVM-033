@@ -1,8 +1,5 @@
-numpy
-pandas
-matplotlib
-seaborn
 streamlit
-plotly==5.9.0
-streamlit_lottie
 scikit-learn
+pandas
+numpy
+joblib
