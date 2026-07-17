@@ -1,33 +1,38 @@
 # -*- coding: utf-8 -*-
 """
-เว็บแอปทำนายภาวะซึมเศร้าด้วยโมเดล SVM (เวอร์ชันตกแต่ง)
+เว็บแอปทำนายภาวะซึมเศร้าด้วยโมเดล SVM
+โครงสร้างแบบเดียวกับโปรเจกต์ Iris: โหลด scaler.pkl + model.pkl แยกกัน
 วิธีรัน:  streamlit run app.py
-(ต้องมีไฟล์ svm_depression_model.pkl อยู่ในโฟลเดอร์เดียวกัน)
 """
 
 import streamlit as st
-import pandas as pd
 import joblib
+import numpy as np
 
-# =====================================================================
-# ตั้งค่าหน้าเว็บ
-# =====================================================================
+# =========================
+# Load Model (แบบเดียวกับโปรเจกต์ Iris)
+# =========================
+scaler = joblib.load("scaler.pkl")
+model = joblib.load("svm_depression_model.pkl")
+
+# =========================
+# Page
+# =========================
 st.set_page_config(
     page_title="MindCheck | ระบบทำนายภาวะซึมเศร้า",
     page_icon="🌿",
-    layout="centered",
+    layout="centered"
 )
 
-# =====================================================================
-# CSS ตกแต่ง — ธีม "ใบไม้ยามเช้า" โทนเขียวสงบ + ฟอนต์ไทย Mitr/Anuphan
-# =====================================================================
+# =========================
+# CSS ตกแต่ง — ธีม "ใบไม้ยามเช้า" + ฟอนต์ไทย Mitr/Anuphan
+# =========================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Mitr:wght@500;600&family=Anuphan:wght@400;500;600&display=swap');
 
-/* ---------- พื้นหลังและฟอนต์หลัก ---------- */
 .stApp {
-    background: linear-gradient(180deg, #Eef5F0 0%, #F7FAF8 40%);
+    background: linear-gradient(180deg, #EEF5F0 0%, #F7FAF8 40%);
     font-family: 'Anuphan', sans-serif;
 }
 html, body, [class*="css"], p, label, span, div {
@@ -38,7 +43,7 @@ h1, h2, h3 {
     color: #17453B;
 }
 
-/* ---------- การ์ดส่วนหัว ---------- */
+/* การ์ดส่วนหัว */
 .hero {
     background: linear-gradient(135deg, #17453B 0%, #2E7D66 100%);
     border-radius: 20px;
@@ -47,16 +52,8 @@ h1, h2, h3 {
     color: #FFFFFF;
     box-shadow: 0 8px 24px rgba(23, 69, 59, 0.25);
 }
-.hero h1 {
-    color: #FFFFFF !important;
-    font-size: 1.9rem;
-    margin: 0 0 0.4rem 0;
-}
-.hero p {
-    color: #CDE8DD;
-    margin: 0;
-    font-size: 1rem;
-}
+.hero h1 { color: #FFFFFF !important; font-size: 1.9rem; margin: 0 0 0.4rem 0; }
+.hero p { color: #CDE8DD; margin: 0; font-size: 1rem; }
 .hero .badge {
     display: inline-block;
     background: rgba(255,255,255,0.15);
@@ -68,7 +65,7 @@ h1, h2, h3 {
     color: #EAF6F0;
 }
 
-/* ---------- กล่องคำเตือน ---------- */
+/* กล่องคำเตือน */
 .notice {
     background: #FFF8E8;
     border-left: 5px solid #E3A82B;
@@ -79,7 +76,7 @@ h1, h2, h3 {
     margin-bottom: 1.4rem;
 }
 
-/* ---------- หัวข้อกลุ่มฟอร์ม ---------- */
+/* หัวข้อกลุ่มฟอร์ม */
 .section-label {
     font-family: 'Mitr', sans-serif;
     color: #2E7D66;
@@ -89,7 +86,7 @@ h1, h2, h3 {
     margin: 1.2rem 0 0.6rem 0;
 }
 
-/* ---------- ปุ่มทำนาย ---------- */
+/* ปุ่มทำนาย */
 .stButton > button {
     background: linear-gradient(135deg, #2E7D66 0%, #17453B 100%);
     color: #FFFFFF;
@@ -107,32 +104,21 @@ h1, h2, h3 {
     color: #FFFFFF;
 }
 
-/* ---------- การ์ดผลลัพธ์ ---------- */
+/* การ์ดผลลัพธ์ */
 .result-card {
     border-radius: 18px;
     padding: 1.6rem 1.8rem;
     margin-top: 1rem;
     animation: fadeUp 0.5s ease;
 }
-.result-safe {
-    background: #E9F7EE;
-    border: 1.5px solid #7BC79A;
-    color: #1D5B34;
-}
-.result-risk {
-    background: #FDEEEC;
-    border: 1.5px solid #E58B7B;
-    color: #7A2C1E;
-}
-.result-card h2 {
-    font-size: 1.35rem;
-    margin: 0 0 0.4rem 0;
-}
+.result-safe { background: #E9F7EE; border: 1.5px solid #7BC79A; color: #1D5B34; }
+.result-risk { background: #FDEEEC; border: 1.5px solid #E58B7B; color: #7A2C1E; }
+.result-card h2 { font-size: 1.35rem; margin: 0 0 0.4rem 0; }
 .result-safe h2 { color: #1D5B34 !important; }
 .result-risk h2 { color: #7A2C1E !important; }
 .result-card p { margin: 0.2rem 0; font-size: 0.95rem; }
 
-/* ---------- เกจความเสี่ยง ---------- */
+/* เกจความเสี่ยง */
 .gauge-wrap {
     background: #E4EEE8;
     border-radius: 999px;
@@ -140,23 +126,14 @@ h1, h2, h3 {
     overflow: hidden;
     margin: 0.8rem 0 0.3rem 0;
 }
-.gauge-fill {
-    height: 100%;
-    border-radius: 999px;
-    transition: width 0.8s ease;
-}
-.gauge-caption {
-    font-size: 0.85rem;
-    color: #4A6B5D;
-    text-align: right;
-}
+.gauge-fill { height: 100%; border-radius: 999px; transition: width 0.8s ease; }
+.gauge-caption { font-size: 0.85rem; color: #4A6B5D; text-align: right; }
 
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- ส่วนท้าย ---------- */
 .footer-note {
     text-align: center;
     color: #7C9C8E;
@@ -166,23 +143,14 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# =====================================================================
-# โหลดโมเดล (cache ไว้ไม่ให้โหลดซ้ำทุกครั้ง)
-# =====================================================================
-@st.cache_resource
-def load_model():
-    return joblib.load("svm_depression_model.pkl")
-
-model = load_model()
-
-# =====================================================================
+# =========================
 # ส่วนหัวเว็บ
-# =====================================================================
+# =========================
 st.markdown("""
 <div class="hero">
     <h1>🌿 MindCheck — ระบบทำนายภาวะซึมเศร้า</h1>
     <p>ประเมินความเสี่ยงเบื้องต้นจากพฤติกรรมและไลฟ์สไตล์ ด้วยโมเดล Support Vector Machine</p>
-    <span class="badge">SVM (LinearSVC) · Accuracy 93.6% · F1-score 0.82</span>
+    <span class="badge">SVM · Accuracy 93.6% · F1-score 0.82</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -193,9 +161,9 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# =====================================================================
-# ฟอร์มกรอกข้อมูล — แบ่งเป็น 3 กลุ่มให้อ่านง่าย
-# =====================================================================
+# =========================
+# Input — แบ่งเป็น 3 กลุ่มให้อ่านง่าย
+# =========================
 st.markdown('<div class="section-label">👤 ข้อมูลทั่วไป</div>', unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -234,41 +202,64 @@ with col7:
 
 st.write("")
 
-# =====================================================================
-# ปุ่มทำนายและแสดงผล
-# =====================================================================
+# =========================
+# Prediction (แบบเดียวกับโปรเจกต์ Iris: numpy array -> scale -> predict)
+# =========================
 if st.button("🔍 ประเมินความเสี่ยง", type="primary", use_container_width=True):
 
-    # สร้าง DataFrame ให้ชื่อคอลัมน์ตรงกับตอนเทรนโมเดลทุกตัว
-    input_df = pd.DataFrame([{
-        "Gender": gender,
-        "Age": age,
-        "Working Professional or Student": status,
-        "Pressure": pressure,
-        "CGPA": cgpa,
-        "Satisfaction": satisfaction,
-        "Sleep Hours": sleep,
-        "Dietary Habits": diet,
-        "Have you ever had suicidal thoughts ?": suicidal,
-        "Work/Study Hours": work_hours,
-        "Financial Stress": fin_stress,
-        "Family History of Mental Illness": family,
-    }])
+    # แปลงข้อความเป็นตัวเลข "ต้องตรงกับตอนเทรน" ทุกตัว
+    GENDER_MAP = {"Male": 0, "Female": 1}
+    STATUS_MAP = {"Student": 0, "Working Professional": 1}
+    DIET_MAP = {"Healthy": 0, "Moderate": 1, "Unhealthy": 2}
+    YESNO_MAP = {"No": 0, "Yes": 1}
 
-    pred = model.predict(input_df)[0]
-    proba = model.predict_proba(input_df)[0]   # [P(class 0), P(class 1)]
-    risk = float(proba[1])                     # ความน่าจะเป็นของ class 1
+    # ลำดับ Feature 12 ตัว ต้องเรียงเหมือนตอนเทรนเป๊ะๆ:
+    # [Gender, Age, Status, Pressure, CGPA, Satisfaction,
+    #  Sleep Hours, Diet, Suicidal, Work/Study Hours, Financial Stress, Family History]
+    input_data = np.array([[
+        GENDER_MAP[gender],
+        age,
+        STATUS_MAP[status],
+        pressure,
+        cgpa,
+        satisfaction,
+        sleep,
+        DIET_MAP[diet],
+        YESNO_MAP[suicidal],
+        work_hours,
+        fin_stress,
+        YESNO_MAP[family],
+    ]])
+
+    # Scale
+    input_scaled = scaler.transform(input_data)
+
+    # Predict
+    prediction = model.predict(input_scaled)[0]
+
+    # Probability (ถ้ามี)
+    try:
+        risk = float(model.predict_proba(input_scaled)[0][1])
+    except Exception:
+        risk = None
 
     # เลือกสีเกจตามระดับความเสี่ยง
-    gauge_color = "#7BC79A" if risk < 0.35 else ("#E3A82B" if risk < 0.65 else "#D96C57")
+    if risk is not None:
+        gauge_color = "#7BC79A" if risk < 0.35 else ("#E3A82B" if risk < 0.65 else "#D96C57")
+        gauge_html = f"""
+            <div class="gauge-wrap"><div class="gauge-fill" style="width:{risk*100:.0f}%; background:{gauge_color};"></div></div>
+            <div class="gauge-caption">ระดับความเสี่ยง {risk:.1%}</div>"""
+        risk_text = f"โมเดลประเมินความน่าจะเป็นอยู่ที่ <b>{risk:.1%}</b>"
+    else:
+        gauge_html = ""
+        risk_text = ""
 
-    if pred == 1:
+    if prediction == 1:
         st.markdown(f"""
         <div class="result-card result-risk">
             <h2>ผลประเมิน: มีความเสี่ยงภาวะซึมเศร้า</h2>
-            <p>โมเดลประเมินความน่าจะเป็นอยู่ที่ <b>{risk:.1%}</b></p>
-            <div class="gauge-wrap"><div class="gauge-fill" style="width:{risk*100:.0f}%; background:{gauge_color};"></div></div>
-            <div class="gauge-caption">ระดับความเสี่ยง {risk:.1%}</div>
+            <p>{risk_text}</p>
+            {gauge_html}
             <p style="margin-top:0.8rem;">ผลนี้เป็นการประเมินเบื้องต้นจากโมเดลเท่านั้น
             แนะนำให้พูดคุยกับคนใกล้ชิดหรือผู้เชี่ยวชาญด้านสุขภาพจิต<br>
             📞 สายด่วนสุขภาพจิต <b>1323</b> (ฟรี ตลอด 24 ชั่วโมง)</p>
@@ -278,21 +269,17 @@ if st.button("🔍 ประเมินความเสี่ยง", type="p
         st.markdown(f"""
         <div class="result-card result-safe">
             <h2>ผลประเมิน: ไม่พบความเสี่ยงภาวะซึมเศร้า</h2>
-            <p>โมเดลประเมินความมั่นใจอยู่ที่ <b>{proba[0]:.1%}</b></p>
-            <div class="gauge-wrap"><div class="gauge-fill" style="width:{risk*100:.0f}%; background:{gauge_color};"></div></div>
-            <div class="gauge-caption">ระดับความเสี่ยง {risk:.1%}</div>
+            <p>{risk_text}</p>
+            {gauge_html}
             <p style="margin-top:0.8rem;">อย่าลืมดูแลสุขภาพกายและใจอย่างสม่ำเสมอนะครับ 🌱</p>
         </div>
         """, unsafe_allow_html=True)
 
-    with st.expander("📋 ดูข้อมูลที่ใช้ทำนาย"):
-        st.dataframe(input_df, use_container_width=True)
-
-# =====================================================================
+# =========================
 # ส่วนท้าย
-# =====================================================================
+# =========================
 st.markdown("""
 <div class="footer-note">
-โปรเจกต์เพื่อการศึกษา · โมเดล Support Vector Machine (scikit-learn) · พัฒนาโดยนักศึกษา
+โปรเจกต์เพื่อการศึกษา · Machine Learning : Support Vector Machine (SVM)
 </div>
 """, unsafe_allow_html=True)
